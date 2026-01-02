@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
@@ -23,8 +22,10 @@ class DatabaseSeeder extends Seeder
         // RoleSeeder doit être appelé en premier car UserSeeder en a besoin.
         $this->call([
             RoleSeeder::class, 
+            CategorySeeder::class, // <-- Ajoutez cette ligne ici
             UserSeeder::class,
-            // (Ajoutez ici CategorySeeder::class et ResourceSeeder::class quand ils seront créés)
+            ResourceSeeder::class, // <-- Ajoutez cette ligne ici
+            // (Ajoutez ici ResourceSeeder::class quand il sera créé)
         ]);
 
         // 3. RÉACTIVATION DES CONTRAINTES DE CLÉS ÉTRANGÈRES

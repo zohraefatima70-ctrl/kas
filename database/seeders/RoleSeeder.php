@@ -19,13 +19,34 @@ class RoleSeeder extends Seeder
         $now = Carbon::now();
 
         DB::table('roles')->insert([
-            // ... (Insertion des 4 rôles : Administrateur, Responsable Technique, Utilisateur Interne, Invité)
+            // 1. Administrateur
             [
                 'name' => 'Administrateur', 
-                'description' => 'Gestion complète...',
-                'created_at' => $now, 'updated_at' => $now
+                'description' => 'Gestion complète du Data Center, du catalogue et des utilisateurs.',
+                'created_at' => $now, 
+                'updated_at' => $now
             ],
-            // ...
+            // 2. Responsable Technique
+            [
+                'name' => 'Responsable Technique', 
+                'description' => 'Supervision des ressources, gestion des maintenances, approbation des réservations.',
+                'created_at' => $now, 
+                'updated_at' => $now
+            ],
+            // 3. Utilisateur Interne
+            [
+                'name' => 'Utilisateur Interne', 
+                'description' => 'Consultation du catalogue et soumission des demandes de réservation.',
+                'created_at' => $now, 
+                'updated_at' => $now
+            ],
+            // 4. Invité
+            [
+                'name' => 'Invité', 
+                'description' => 'Consultation publique limitée des ressources disponibles.',
+                'created_at' => $now, 
+                'updated_at' => $now
+            ],
         ]);
     }
 }

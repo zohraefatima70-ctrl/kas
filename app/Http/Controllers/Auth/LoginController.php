@@ -1,49 +1,80 @@
 <?php
 
-// app/Http/Controllers/Auth/LoginController.php
-
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Controller; // obligatoire !
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
 
 class LoginController extends Controller
 {
-    // Affiche le formulaire de connexion
+    /**
+     * Afficher le formulaire de login.
+     */
     public function showLoginForm()
     {
-        return view('auth.login');
+        return view('auth.login'); // ta vue login
     }
 
-    // Gère la soumission du formulaire de connexion
+    /**
+     * Traiter la connexion.
+     */
     public function login(Request $request)
     {
+        // Validation des champs
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        if (Auth::attempt($credentials, $request->boolean('remember'))) {
+        // Tentative de connexion
+        if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
 
-            // Redirection vers l'aiguilleur central
-            return redirect()->intended('/home'); 
+            // Redirection selon rôle et statut
+            return $this->redirectByRole(Auth::user());
         }
 
-        throw ValidationException::withMessages([
-            'email' => 'Les identifiants fournis ne correspondent pas à nos enregistrements.',
+        // Login échoué
+        return back()->withErrors([
+            'email' => 'Les informations de connexion sont incorrectes.',
         ]);
     }
-    
-    // Gère la déconnexion
+
+    /**
+     * Déconnexion.
+     */
     public function logout(Request $request)
     {
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/');
+        return redirect()->route('login');
+    }
+
+    /**
+     * Redirection selon rôle et statut.
+     */
+    protected function redirectByRole($user)
+    {
+        // Vérifier si le compte est actif
+        if ($user->status != 'active') {
+            Auth::logout();
+            return redirect()->route('login')->withErrors('Votre compte n’est pas actif.');
+        }
+
+        // Redirection selon rôle
+        switch ($user->role) {
+            case 'admin':
+                return redirect()->route('admin.dashboard');
+            case 'responsable':
+                return redirect()->route('manager.dashboard');
+            case 'utilisateur':
+                return redirect()->route('user.dashboard');
+            default:
+                Auth::logout();
+                return redirect()->route('login')->withErrors('Rôle non reconnu.');
+        }
     }
 }
