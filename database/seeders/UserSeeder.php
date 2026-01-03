@@ -34,6 +34,8 @@ class UserSeeder extends Seeder
                 'email' => 'admin@dcresa.com', 
                 'password' => Hash::make('password'),
                 'role_id' => $adminRole->id,
+                'email_verified_at' => $now, 
+                'status' => 'active', // <--- CHAMPS AJOUTÉ ET NÉCESSAIRE
                 'created_at' => $now, 
                 'updated_at' => $now
             ]);
@@ -46,6 +48,8 @@ class UserSeeder extends Seeder
                 'email' => 'manager@dcresa.com',
                 'password' => Hash::make('password'),
                 'role_id' => $managerRole->id,
+                'email_verified_at' => $now, 
+                'status' => 'active', // <--- CHAMPS AJOUTÉ ET NÉCESSAIRE
                 'created_at' => $now, 
                 'updated_at' => $now
             ]);
@@ -54,9 +58,7 @@ class UserSeeder extends Seeder
         // UTILISATEURS INTERNES (Standard)
         if ($internalRole) {
             $internalUsers = [
-                // Utilisateur initial
                 ['name' => 'romaissae', 'email' => 'user@dcresa.com'],
-                // Utilisateurs supplémentaires
                 ['name' => 'salmane', 'email' => 'interne1@dcresa.com'],
                 ['name' => 'zakaria', 'email' => 'interne2@dcresa.com'],
             ];
@@ -67,6 +69,8 @@ class UserSeeder extends Seeder
                     'email' => $userData['email'],
                     'password' => Hash::make('password'), // Même mot de passe de test
                     'role_id' => $internalRole->id,
+                    'email_verified_at' => $now, 
+                    'status' => 'active', // <--- CHAMPS AJOUTÉ ET NÉCESSAIRE
                     'created_at' => $now, 
                     'updated_at' => $now
                 ]);

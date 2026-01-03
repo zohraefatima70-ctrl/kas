@@ -3,56 +3,93 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
+use App\Models\Resource;
 use App\Models\Category;
-use App\Models\User;
+use App\Models\User; // Pour récupérer le Manager (Fatima TechManager)
 use Carbon\Carbon;
 
 class ResourceSeeder extends Seeder
 {
     public function run(): void
     {
-        // On vide la table pour repartir à neuf
-        DB::table('resources')->truncate();
+        // Vider la table pour un état propre
+        Resource::truncate(); 
 
-        // On récupère les IDs nécessaires pour les relations
-        $catServeur = Category::where('name', 'Serveur')->first()->id;
-        $catVM = Category::where('name', 'Machine Virtuelle')->first()->id;
-        $catReseau = Category::where('name', 'Équipement Réseau')->first()->id;
+        // 1. Récupération des IDs et variables
+        $manager = User::where('email', 'manager@dcresa.com')->first();
         
-        // On récupère l'ID du premier utilisateur (souvent l'admin) pour manager_id
-        $adminId = User::first()->id;
+        $serverCategory = Category::where('name', 'Serveurs')->first();
+        $networkCategory = Category::where('name', 'Équipement Réseau')->first();
+        $roomCategory = Category::where('name', 'Salles')->first();
+        
+        $now = Carbon::now();
+        
+        // ID du manager (s'il existe, sinon on utilise null ou on s'arrête)
+        $managerId = $manager ? $manager->id : null; 
+        
+        // Sécurité : On ne fait rien si le manager n'existe pas
+        if (!$managerId) {
+            return; 
+        }
 
-        $resources = [
-            [
+        // 2. Ressources 'Serveurs'
+        if ($serverCategory) {
+            
+            // Serveur 1 (DISPO)
+            Resource::create([
                 'name' => 'Dell PowerEdge R740',
-                'category_id' => $catServeur,
-                'manager_id' => $adminId,
-                'location' => 'Salle A - Rack 01',
-                'status' => 'disponible',
                 'description' => 'Serveur physique principal',
-                'created_at' => Carbon::now(),
-            ],
-            [
+                'location' => 'Salle A - Rack 01',
+                'status' => 'DISPO',
+                'category_id' => $serverCategory->id,
+                'manager_id' => $managerId,
+                'created_at' => $now, 
+                'updated_at' => $now
+            ]);
+            
+            // Serveur 2 (RÉSERVÉ)
+            Resource::create([
                 'name' => 'VM-Web-Prod',
-                'category_id' => $catVM,
-                'manager_id' => $adminId,
-                'location' => 'Cluster Proxmox 01',
-                'status' => 'disponible',
                 'description' => 'Serveur Web production',
-                'created_at' => Carbon::now(),
-            ],
-            [
+                'location' => 'Cluster Proxmox 01',
+                'status' => 'RESERVE', 
+                'category_id' => $serverCategory->id,
+                'manager_id' => $managerId,
+                'created_at' => $now, 
+                'updated_at' => $now
+            ]);
+        }
+        
+        // 3. Ressources 'Équipement Réseau'
+        if ($networkCategory) {
+            
+            // Switch 1 (MAINTENANCE)
+            Resource::create([
                 'name' => 'Cisco Catalyst 9300',
-                'category_id' => $catReseau,
-                'manager_id' => $adminId,
-                'location' => 'Salle B - Armoire Réseau',
-                'status' => 'maintenance',
                 'description' => 'Switch coeur de réseau',
-                'created_at' => Carbon::now(),
-            ],
-        ];
-
-        DB::table('resources')->insert($resources);
+                'location' => 'Salle B - Armoire Réseau',
+                'status' => 'MAINT',
+                'category_id' => $networkCategory->id,
+                'manager_id' => $managerId,
+                'created_at' => $now, 
+                'updated_at' => $now
+            ]);
+        }
+        
+        // 4. Ressources 'Salles'
+        if ($roomCategory) {
+            
+            // Salle 1 (DISPO)
+            Resource::create([
+                'name' => 'Salle de Conférence KAS',
+                'description' => 'Salle principale pour les réunions de groupe',
+                'location' => '2ème étage',
+                'status' => 'DISPO',
+                'category_id' => $roomCategory->id,
+                'manager_id' => $managerId,
+                'created_at' => $now, 
+                'updated_at' => $now
+            ]);
+        }
     }
 }
