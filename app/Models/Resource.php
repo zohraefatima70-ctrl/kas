@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 
 class Resource extends Model
 {
-protected $fillable = [
-        'category_id', 'manager_id', 'name', 'location', 'status', 'description', 
-        'cpu_cores', 'ram_gb', 'storage_tb', 'os_name' // Les specs dans la table Resource
+    protected $fillable = [
+        'category_id', 'manager_id', 'name', 'location', 'status', 'description',
+        'cpu_cores', 'ram_gb', 'storage_tb', 'os_name'
     ];
 
     // Relation pour récupérer la catégorie
@@ -29,6 +29,10 @@ protected $fillable = [
     // Relation pour récupérer les spécifications secondaires
     public function specifications() {
         return $this->hasMany(Specification::class);
+    }
+
+    public function maintenances() {
+        return $this->hasMany(Maintenance::class);
     }
 }
 

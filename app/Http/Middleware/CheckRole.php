@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Auth;
 class CheckRole
 {
     /**
-     * Gérer l'accès selon le rôle.
+     * Handle an incoming request.
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Closure  $next
@@ -18,15 +18,28 @@ class CheckRole
      */
     public function handle(Request $request, Closure $next, $role)
     {
-        if (!Auth::check()) {
-            // Non connecté → redirige vers login
-            return redirect()->route('login');
+        if (!auth()->check()) {
+            return redirect('login');
         }
 
-        // Si le rôle ne correspond pas
-        if (Auth::user()->role != $role) {
-            abort(403, 'Accès interdit.');
+        $user = auth()->user();
+
+        // Mapping des slugs de route vers les noms de rôle en base de données
+        $roleMap = [
+            'admin' => 'Administrateur',
+            'responsable' => 'Responsable Technique',
+            'utilisateur' => 'Utilisateur Interne',
+        ];
+
+        $expectedRoleName = $roleMap[$role] ?? $role;
+
+        // Vérifie le rôle (supposant que la relation 'role' est chargée ou accessible)
+        // On utilise safe null operator au cas où la relation est vide
+        if ($user->role?->name !== $expectedRoleName) {
+             abort(403, 'Accès non autorisé. Rôle requis : ' . $role);
         }
+        
+
 
         return $next($request);
     }

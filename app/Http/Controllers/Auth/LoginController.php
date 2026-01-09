@@ -2,79 +2,69 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Http\Controllers\Controller; // obligatoire !
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class LoginController extends Controller
 {
-    /**
-     * Afficher le formulaire de login.
-     */
     public function showLoginForm()
     {
-        return view('auth.login'); // ta vue login
+        return view('auth.login');
     }
 
-    /**
-     * Traiter la connexion.
-     */
     public function login(Request $request)
     {
-        // Validation des champs
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
-        // Tentative de connexion
         if (Auth::attempt($credentials)) {
             $request->session()->regenerate();
-
-            // Redirection selon rôle et statut
             return $this->redirectByRole(Auth::user());
         }
 
-        // Login échoué
-        return back()->withErrors([
-            'email' => 'Les informations de connexion sont incorrectes.',
-        ]);
+        return back()->withErrors(['email' => 'Identifiants incorrects.']);
     }
 
-    /**
-     * Déconnexion.
-     */
-    public function logout(Request $request)
-    {
-        Auth::logout();
-        $request->session()->invalidate();
-        $request->session()->regenerateToken();
-
-        return redirect()->route('login');
-    }
-
-    /**
-     * Redirection selon rôle et statut.
-     */
     protected function redirectByRole($user)
     {
-        // Vérifier si le compte est actif
-        if ($user->status != 'active') {
+        // 1. Vérification du statut du compte
+        if ($user->status !== 'active') {
             Auth::logout();
-            return redirect()->route('login')->withErrors('Votre compte n’est pas actif.');
+            return redirect()->route('login')->withErrors('Votre compte est inactif.');
         }
 
-        // Redirection selon rôle
-        switch ($user->role) {
-            case 'admin':
+        // 2. Récupération du nom du rôle
+        // Assurez-vous que la relation 'role' existe sur votre modèle User
+        $roleName = $user->role->name ?? null;
+
+        switch ($roleName) {
+            case 'Administrateur':
                 return redirect()->route('admin.dashboard');
-            case 'responsable':
+            case 'Responsable Technique':
                 return redirect()->route('manager.dashboard');
-            case 'utilisateur':
+            case 'Utilisateur Interne':
                 return redirect()->route('user.dashboard');
             default:
                 Auth::logout();
-                return redirect()->route('login')->withErrors('Rôle non reconnu.');
+                return redirect()->route('login')->withErrors("Rôle non reconnu ou manquant.");
         }
+    }
+
+    /**
+     * Gère la déconnexion de l'utilisateur.
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\RedirectResponse
+     */
+    public function logout(Request $request)
+    {
+        Auth::logout(); // Déconnecte la session utilisateur de Laravel
+        $request->session()->invalidate(); // Invalide la session
+        $request->session()->regenerateToken(); // Régénère le jeton CSRF pour la sécurité
+        
+        // Redirige vers la page d'accueil
+        return redirect()->route('home'); // Utilisation de route('home') au lieu de '/'
     }
 }

@@ -1,50 +1,101 @@
-@extends('layouts/user')
+@extends('layouts.user')
 
 @section('content')
-<h1>Bienvenue {{ auth()->user()->name }}</h1>
-
-<div class="notifications">
-    <h3>Notifications</h3>
-    <ul>
-        @foreach(auth()->user()->notifications()->where('read', false)->get() as $notif)
-            <li>{{ $notif->message }} <small>{{ $notif->created_at->diffForHumans() }}</small></li>
-        @endforeach
-        @if(auth()->user()->notifications()->where('read', false)->count() == 0)
-            <li>Aucune nouvelle notification.</li>
-        @endif
-    </ul>
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Bienvenue, {{ Auth::user()->name }}</h1>
+        <p class="page-subtitle">Aperçu de vos activités récentes et ressources.</p>
+    </div>
+    <a href="{{ route('internal.catalogue') }}" class="btn btn-primary">
+        <i data-lucide="plus" style="width: 18px; margin-right: 8px;"></i> Nouvelle Réservation
+    </a>
 </div>
 
-<h2>Réservations</h2>
-<table>
-<tr>
-    <th>Ressource</th>
-    <th>Début</th>
-    <th>Fin</th>
-    <th>Status</th>
-</tr>
-@foreach($reservations as $res)
-<tr class="status-{{ strtolower($res->status) }}">
-    <td>{{ $res->resource->name }}</td>
-    <td>{{ $res->start_date }}</td>
-    <td>{{ $res->end_date }}</td>
-    <td>{{ $res->status }}</td>
-</tr>
-@endforeach
-</table>
+<div class="grid-2" style="margin-bottom: 32px;">
+    <!-- Stat Cards -->
+    <div class="card" style="display: flex; align-items: center; padding: 24px;">
+        <div style="background-color: #eff6ff; width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--primary-color); margin-right: 20px;">
+            <i data-lucide="calendar-clock" style="width: 28px; height: 28px;"></i>
+        </div>
+        <div>
+            <div style="font-size: 2rem; font-weight: 700; line-height: 1;">{{ $activeReservationsCount }}</div>
+            <div style="color: var(--text-muted);">Réservations Actives/En Attente</div>
+        </div>
+    </div>
+    
+    <div class="card" style="display: flex; align-items: center; padding: 24px;">
+        <div style="background-color: #f0fdf4; width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #15803d; margin-right: 20px;">
+            <i data-lucide="check-circle-2" style="width: 28px; height: 28px;"></i>
+        </div>
+        <div>
+            <div style="font-size: 2rem; font-weight: 700; line-height: 1;">0</div> <!-- Placeholder for now -->
+            <div style="color: var(--text-muted);">Demandes Approuvées ce mois</div>
+        </div>
+    </div>
+</div>
 
-<div class="stats">
-    <div class="stat-card">
-        <h3>{{ $reservations->count() }}</h3>
-        <p>Total réservations</p>
+<div class="card">
+    <div class="card-header">
+        <span>Vos Dernières Réservations</span>
+        <a href="{{ route('internal.reservations') }}" style="font-size: 0.9rem; color: var(--primary-color);">Tout voir &rarr;</a>
     </div>
-    <div class="stat-card">
-        <h3>{{ $reservations->where('status','active')->count() }}</h3>
-        <p>Réservations actives</p>
-    </div>
-    <div class="stat-card">
-        <h3>{{ $incidents->count() }}</h3>
-        <p>Incidents signalés</p>
+    <div class="card-body" style="padding: 0;">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Ressource</th>
+                    <th>Date de début</th>
+                    <th>Date de fin</th>
+                    <th>Durée</th>
+                    <th>Statut</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($reservations as $reservation)
+                <tr>
+                    <td>
+                        <div style="font-weight: 600;">{{ $reservation->resource->name }}</div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted);">{{ $reservation->resource->category->name ?? 'N/A' }}</div>
+                    </td>
+                    <td>{{ \Carbon\Carbon::parse($reservation->start_time)->format('d/m/Y H:i') }}</td>
+                    <td>{{ \Carbon\Carbon::parse($reservation->end_time)->format('d/m/Y H:i') }}</td>
+                    <td>
+                        {{ \Carbon\Carbon::parse($reservation->start_time)->diffForHumans(\Carbon\Carbon::parse($reservation->end_time), true) }}
+                    </td>
+                    <td>
+                        @if($reservation->status == 'pending')
+                            <span class="status-badge status-pending">En attente</span>
+                        @elseif($reservation->status == 'approved')
+                            <span class="status-badge status-approved">Approvée</span>
+                        @elseif($reservation->status == 'active')
+                            <span class="status-badge status-active">En cours</span>
+                        @elseif($reservation->status == 'completed')
+                            <span class="status-badge status-closed">Terminée</span>
+                        @elseif($reservation->status == 'cancelled')
+                             <span class="status-badge status-rejected">Annulée</span>
+                         @elseif($reservation->status == 'rejected')
+                             <span class="status-badge status-rejected">Refusée</span>
+                        @endif
+                    </td>
+                    <td>
+                        @if($reservation->status == 'pending')
+                            <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 0.85rem;">Annuler</button>
+                        @else
+                            <span style="color: var(--text-muted);">-</span>
+                        @endif
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        <i data-lucide="calendar" style="margin-bottom: 8px; width: 32px; height: 32px; color: #cbd5e1;"></i>
+                        <p>Aucune réservation récente.</p>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
 </div>
 @endsection

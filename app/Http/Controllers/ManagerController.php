@@ -1,32 +1,69 @@
 <?php
 
-// app/Http/Controllers/ManagerController.php
+namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Resource;
 use App\Models\Reservation;
+use App\Models\Incident;
 use Illuminate\Support\Facades\Auth;
 
 class ManagerController extends Controller
 {
-    public function index()
+    public function dashboard()
     {
         $managerId = Auth::id();
+        $supervisedResourcesIds = Resource::where('manager_id', $managerId)->pluck('id');
 
-        // Ressources supervisées par ce responsable
-        $supervisedResources = Resource::where('manager_id', $managerId)->pluck('id');
-
-        // Demandes de réservation en attente pour les ressources qu'il gère
         $pendingRequests = Reservation::with('user', 'resource')
-            ->whereIn('resource_id', $supervisedResources)
+            ->whereIn('resource_id', $supervisedResourcesIds)
             ->where('status', 'pending')
-            ->orderBy('start_time', 'asc')
+            ->orderBy('created_at', 'asc')
             ->get();
-            
-        // Demandes d'incidents ouvertes pour les ressources qu'il gère
-        $openIncidents = Incident::whereIn('resource_id', $supervisedResources)
-                                  ->where('status', '!=', 'resolved')
-                                  ->get();
 
-        return view('manager.dashboard', compact('pendingRequests', 'openIncidents'));
+        $myResourcesCount = Resource::where('manager_id', $managerId)->count();
+        $activeReservationsCount = Reservation::whereIn('resource_id', $supervisedResourcesIds)
+            ->where('status', 'active')
+            ->count();
+
+        return view('manager.dashboard', compact('pendingRequests', 'myResourcesCount', 'activeReservationsCount'));
+    }
+
+    public function approveReservation($id)
+    {
+        $reservation = Reservation::findOrFail($id);
+        
+        // Ensure the manager supervises this resource
+        if ($reservation->resource->manager_id != Auth::id()) {
+            return back()->with('error', 'Vous n\'êtes pas autorisé à gérer cette réservation.');
+        }
+
+        $reservation->update(['status' => 'approved']);
+        
+        // Notification logic would go here
+
+        return back()->with('success', 'Réservation approuvée.');
+    }
+
+    public function rejectReservation($id)
+    {
+        $reservation = Reservation::findOrFail($id);
+        
+        if ($reservation->resource->manager_id != Auth::id()) {
+            return back()->with('error', 'Interdit.');
+        }
+
+        $reservation->update(['status' => 'rejected']);
+
+        return back()->with('success', 'Réservation refusée.');
+    }
+
+    public function myResources()
+    {
+        $resources = Resource::where('manager_id', Auth::id())
+            ->with(['category', 'activeReservation'])
+            ->paginate(10);
+
+        return view('manager.resources', compact('resources'));
     }
 }

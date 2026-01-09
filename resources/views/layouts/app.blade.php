@@ -1,45 +1,52 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DC Resa | Gestion des Ressources Data Center</title>
+<header class="w-full lg:max-w-4xl max-w-[335px] text-sm mb-6 not-has-[nav]:hidden">
     
-    <link rel="stylesheet" href="{{ asset('css/style.css') }}">
-    
-    @stack('styles') 
-</head>
-<body>
-    
-    <header class="main-header">
-        <div class="logo">DC Resa</div>
-        
+                  @if (Route::has('login'))
+    <nav class="flex items-center justify-end gap-4">
         @auth
-            @include('layouts.navigation') 
+            {{-- L'utilisateur est CONNECTÉ : Affiche Dashboard et Déconnexion --}}
+            
+            <a
+                href="{{ url('/dashboard') }}"
+                class="inline-block px-5 py-1.5 dark:text-[#EDEDEC] border-[#19140035] hover:border-[#1915014a] border text-[#1b1b18] dark:border-[#3E3E3A] dark:hover:border-[#62605b] rounded-sm text-sm leading-normal"
+            >
+                Dashboard
+            </a>
+            
+            {{-- **LE NOUVEAU LIEN DE DÉCONNEXION** --}}
+            <a
+                href="{{ route('logout') }}"
+                onclick="event.preventDefault(); document.getElementById('logout-form').submit();"
+                class="inline-block px-5 py-1.5 bg-[#F53003] hover:bg-black text-white dark:bg-[#FF4433] dark:hover:bg-white dark:hover:text-[#1C1C1A] rounded-sm text-sm leading-normal transition-all"
+            >
+                Déconnexion
+            </a>
+            
+            {{-- **LE FORMULAIRE POST CACHÉ (OBLIGATOIRE)** --}}
+            <form id="logout-form" action="{{ route('logout') }}" method="POST" style="display: none;">
+                @csrf 
+            </form>
+
         @else
-            <nav>
-                <a href="{{ route('login') }}">Connexion</a>
-                <a href="{{ route('register') }}">Inscription</a>
-            </nav>
+            {{-- L'utilisateur n'est PAS connecté : Affiche Log in et Register --}}
+
+            <a
+                href="{{ route('login') }}"
+                class="inline-block px-5 py-1.5 dark:text-[#EDEDEC] text-[#1b1b18] border border-transparent hover:border-[#19140035] dark:hover:border-[#3E3E3A] rounded-sm text-sm leading-normal"
+            >
+                Log in
+            </a>
+
+            @if (Route::has('register'))
+                <a
+                    href="{{ route('register') }}"
+                    class="inline-block px-5 py-1.5 dark:text-[#EDEDEC] border-[#19140035] hover:border-[#1915014a] border text-[#1b1b18] dark:border-[#3E3E3A] dark:hover:border-[#62605b] rounded-sm text-sm leading-normal"
+                >
+                    Register
+                </a>
+            @endif
         @endauth
-    </header>
+    </nav>
+@endif
+</header>
 
-    <main class="main-content">
-        @if (session('success'))
-            <div class="alert success">{{ session('success') }}</div>
-        @endif
-        @if (session('error'))
-            <div class="alert error">{{ session('error') }}</div>
-        @endif
-        
-        @yield('content')
-    </main>
-    
-    <footer class="main-footer">
-        <p>&copy; {{ date('Y') }} Data Center Resource Booking. Tous droits réservés.</p>
-    </footer>
-
-    <script src="{{ asset('js/app.js') }}"></script>
-    @stack('scripts')
-</body>
-</html>
+{{-- Reste du code de la page --}}

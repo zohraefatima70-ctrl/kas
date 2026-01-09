@@ -1,71 +1,63 @@
 <?php
 
-// app/Http/Controllers/ReservationController.php
+namespace App\Http\Controllers;
 
-use App\Models\Reservation;
-use App\Models\Maintenance;
-use App\Models\Resource;
 use Illuminate\Http\Request;
+use App\Models\Resource;
+use App\Models\Reservation;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Validation\ValidationException;
+use Carbon\Carbon;
 
 class ReservationController extends Controller
 {
-    /**
-     * Soumet une nouvelle demande de réservation.
-     */
-    public function store(Request $request)
+    public function create($resource_id)
     {
-        $validated = $request->validate([
-            'resource_id' => 'required|exists:resources,id',
-            'start_time' => 'required|date|after_or_equal:now',
-            'end_time' => 'required|date|after:start_time',
-            'justification' => 'required|string|max:500',
-        ]);
-
-        $resourceId = $validated['resource_id'];
-        $startTime = $validated['start_time'];
-        $endTime = $validated['end_time'];
-
-        // --- Logique 1: Vérification des Réservations existantes ---
-        $existingReservation = Reservation::where('resource_id', $resourceId)
-            ->whereIn('status', ['approved', 'active']) 
-            ->where(function ($query) use ($startTime, $endTime) {
-                // Conflit si le nouveau temps chevauche l'existant
-                $query->where('start_time', '<', $endTime)
-                      ->where('end_time', '>', $startTime);
-            })
-            ->exists();
-
-        // --- Logique 2: Vérification de la Maintenance ---
-        $conflictingMaintenance = Maintenance::where('resource_id', $resourceId)
-            ->where(function ($query) use ($startTime, $endTime) {
-                // Conflit avec la maintenance
-                $query->where('start_time', '<', $endTime)
-                      ->where('end_time', '>', $startTime);
-            })
-            ->exists();
+        $resource = Resource::with('category')->findOrFail($resource_id);
         
-        // Si un conflit est trouvé
-        if ($existingReservation || $conflictingMaintenance) {
-            throw ValidationException::withMessages([
-                'start_time' => 'La ressource est indisponible pendant cette période en raison d\'une réservation existante ou d\'une maintenance planifiée.',
-            ]);
+        if($resource->status !== 'active') {
+            return redirect()->route('internal.catalogue')->with('error', 'Cette ressource n\'est pas disponible pour la réservation.');
         }
 
-        // Création de la demande (statut par défaut: pending)
-        $reservation = Reservation::create([
-            'user_id' => Auth::id(),
-            'resource_id' => $resourceId,
-            'start_time' => $startTime,
-            'end_time' => $endTime,
-            'justification' => $validated['justification'],
-            'status' => 'pending', 
-        ]);
-        
-        // Notification au Responsable Technique (À implémenter dans la prochaine étape)
-        // $resource->manager->notify(new NewReservationRequest($reservation));
+        return view('user.reservations.create', compact('resource'));
+    }
 
-        return redirect()->route('internal.dashboard')->with('success', 'Demande de réservation soumise. En attente d\'approbation.');
+    public function store(Request $request)
+    {
+        $request->validate([
+            'resource_id' => 'required|exists:resources,id',
+            'start_time' => 'required|date|after:now',
+            'end_time' => 'required|date|after:start_time',
+            'reason' => 'nullable|string'
+        ]);
+
+        $resource = Resource::findOrFail($request->resource_id);
+
+        // Basic conflict check (simplistic for now)
+        $conflict = Reservation::where('resource_id', $resource->id)
+            ->whereIn('status', ['approved', 'active'])
+            ->where(function($query) use ($request) {
+                $query->whereBetween('start_time', [$request->start_time, $request->end_time])
+                      ->orWhereBetween('end_time', [$request->start_time, $request->end_time])
+                      ->orWhere(function($q) use ($request) {
+                          $q->where('start_time', '<=', $request->start_time)
+                            ->where('end_time', '>=', $request->end_time);
+                      });
+            })
+            ->exists();
+
+        if ($conflict) {
+            return back()->withInput()->with('error', 'La ressource est déjà réservée sur ce créneau.');
+        }
+
+        Reservation::create([
+            'resource_id' => $resource->id,
+            'user_id' => Auth::id(),
+            'start_time' => $request->start_time,
+            'end_time' => $request->end_time,
+            'reason' => $request->reason,
+            'status' => 'pending' // Default status
+        ]);
+
+        return redirect()->route('internal.dashboard')->with('success', 'Votre demande de réservation a été enregistrée.');
     }
 }

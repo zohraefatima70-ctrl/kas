@@ -1,31 +1,44 @@
 <?php
 
-// app/Http/Controllers/InternalUserController.php
+namespace App\Http\Controllers;
 
+use App\Http\Controllers\Controller;
 use App\Models\Reservation;
 use Illuminate\Support\Facades\Auth;
 
 class InternalUserController extends Controller
 {
-    public function index()
+    public function dashboard()
     {
-        $userId = Auth::id();
-
-        // Récupérer toutes les réservations de l'utilisateur, ordonnées par date
-        $myReservations = Reservation::with('resource')
-            ->where('user_id', $userId)
-            ->orderBy('start_time', 'desc')
+        $reservations = Reservation::where('user_id', Auth::id())
+            ->with(['resource', 'resource.category'])
+            ->latest()
+            ->take(5)
             ->get();
+            
+        $activeReservationsCount = Reservation::where('user_id', Auth::id())
+            ->whereIn('status', ['pending', 'approved', 'active'])
+            ->count();
 
-        // Filtrer les réservations par statut pour affichage dans la vue
-        $pending = $myReservations->where('status', 'pending');
-        $approved = $myReservations->where('status', 'approved');
-        $active = $myReservations->where('status', 'active');
-        $history = $myReservations->whereIn('status', ['rejected', 'completed']);
+        return view('user.dashboard', compact('reservations', 'activeReservationsCount'));
+    }
 
-        // Récupérer les notifications (en utilisant le trait Notifiable par défaut de Laravel)
-        $notifications = Auth::user()->unreadNotifications;
+    public function catalogue()
+    {
+        $resources = \App\Models\Resource::with('category')
+            ->where('status', 'active')
+            ->get();
+            
+        return view('user.catalogue', compact('resources'));
+    }
 
-        return view('internal.dashboard', compact('pending', 'approved', 'active', 'history', 'notifications'));
+    public function reservations()
+    {
+        $reservations = Reservation::where('user_id', Auth::id())
+            ->with(['resource'])
+            ->latest()
+            ->paginate(10);
+            
+        return view('user.reservations.index', compact('reservations'));
     }
 }

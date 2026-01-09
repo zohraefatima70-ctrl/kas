@@ -4,38 +4,32 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class CategorySeeder extends Seeder
 {
-    public function run(): void
+    public function run()
     {
-        // On vide la table pour éviter les doublons
-        DB::table('categories')->truncate();
-
-        $categories = [
+        DB::table('categories')->insert([
             [
-                'name' => 'Serveur',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
+                'name' => 'Serveurs',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'name' => 'Machine Virtuelle',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
+                'name' => 'Machines virtuelles',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
                 'name' => 'Stockage',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
             [
-                'name' => 'Équipement Réseau',
-                'created_at' => Carbon::now(),
-                'updated_at' => Carbon::now(),
+                'name' => 'Équipements réseau',
+                'created_at' => now(),
+                'updated_at' => now(),
             ],
-        ];
-
-        DB::table('categories')->insert($categories);
+        ]);
     }
 }
